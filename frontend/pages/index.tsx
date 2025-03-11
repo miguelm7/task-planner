@@ -1,7 +1,12 @@
-"use client"
-
 import { useState, useEffect } from "react"
-import { Plus, Check, X, Edit, Trash2, Calendar } from "lucide-react"
+import { Plus, Check, X, Edit, Trash2, Calendar, Search, Filter, SortAsc } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 
 interface Task {
   id: number
@@ -16,6 +21,8 @@ export default function Home() {
   const [editingTaskId, setEditingTaskId] = useState<number | null>(null)
   const [editedTaskTitle, setEditedTaskTitle] = useState("")
   const [isDarkMode, setIsDarkMode] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [activeFilter, setActiveFilter] = useState<"all" | "active" | "completed">("all")
 
   useEffect(() => {
     // Check for user's preferred color scheme
@@ -97,162 +104,271 @@ export default function Home() {
       .catch((error) => console.error("Error deleting task:", error))
   }
 
+  // Filter tasks based on active filter and search query
+  const filteredTasks = tasks.filter((task) => {
+    const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase())
+
+    if (activeFilter === "active") return !task.completed && matchesSearch
+    if (activeFilter === "completed") return task.completed && matchesSearch
+    return matchesSearch
+  })
+
+  // Calculate task statistics
+  const totalTasks = tasks.length
+  const completedTasks = tasks.filter((task) => task.completed).length
+  const activeTasks = totalTasks - completedTasks
+  const completionPercentage = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+
   return (
-    <div className="min-h-screen flex justify-center items-center bg-background text-foreground font-sans">
-      <div className="w-full max-w-xl p-6 bg-card shadow-lg rounded-xl border border-gray-200 dark:border-gray-800">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <Calendar className="h-6 w-6" />
+    <div className="min-h-screen flex justify-center items-center bg-gradient-to-br from-background to-secondary/30 text-foreground font-sans p-4">
+      <Card className="w-full max-w-2xl p-6 shadow-lg rounded-xl border border-border/50 backdrop-blur-sm bg-card/95">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold flex items-center gap-2 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+            <Calendar className="h-7 w-7 text-primary" />
             <span>Task Planner</span>
           </h1>
-          <button
-            onClick={toggleDarkMode}
-            className="p-2 rounded-full bg-secondary hover:bg-secondary/80 transition-colors"
-            aria-label={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
-          >
-            {isDarkMode ? (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <circle cx="12" cy="12" r="5" />
-                <line x1="12" y1="1" x2="12" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="23" />
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                <line x1="1" y1="12" x2="3" y2="12" />
-                <line x1="21" y1="12" x2="23" y2="12" />
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-              </svg>
-            ) : (
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-            )}
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center space-x-2">
+              <Switch id="dark-mode" checked={isDarkMode} onCheckedChange={toggleDarkMode} />
+              <Label htmlFor="dark-mode" className="text-sm">
+                {isDarkMode ? "Dark" : "Light"}
+              </Label>
+            </div>
+          </div>
         </div>
 
-        <div className="mb-6">
-          {showInput ? (
-            <div className="flex gap-2">
-              <input
+        <div className="mb-6 space-y-4">
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
                 type="text"
-                className="flex-grow p-3 border border-gray-300 dark:border-gray-700 rounded-lg bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                className="pl-9 bg-background/80 border-border/50 focus-visible:ring-primary"
+                placeholder="Search tasks..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="border-border/50 hover:bg-primary/10 hover:text-primary"
+              title="Filter tasks"
+            >
+              <Filter className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="border-border/50 hover:bg-primary/10 hover:text-primary"
+              title="Sort tasks"
+            >
+              <SortAsc className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {showInput ? (
+            <div className="flex gap-2 animate-in fade-in-0 slide-in-from-top-2 duration-300">
+              <Input
+                type="text"
+                className="flex-grow p-3 border-border/50 bg-background/80 text-foreground placeholder-muted-foreground focus-visible:ring-primary"
                 placeholder="New task..."
                 value={newTask}
                 onChange={(e) => setNewTask(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && addTask()}
                 autoFocus
               />
-              <button
-                className="p-3 rounded-lg bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+              <Button
+                className="p-3 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 onClick={addTask}
                 aria-label="Add task"
               >
                 <Check className="h-5 w-5" />
-              </button>
-              <button
-                className="p-3 rounded-lg bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity"
+              </Button>
+              <Button
+                variant="outline"
+                className="p-3 rounded-lg border-border/50 hover:bg-destructive/10 hover:text-destructive transition-colors"
                 onClick={() => setShowInput(false)}
                 aria-label="Cancel"
               >
                 <X className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
           ) : (
-            <button
-              className="flex items-center justify-center gap-2 w-full p-3 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg transition-colors"
+            <Button
+              className="flex items-center justify-center gap-2 w-full p-3 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg transition-colors border border-primary/20"
               onClick={() => setShowInput(true)}
             >
               <Plus className="h-5 w-5" />
               <span>Add Task</span>
-            </button>
+            </Button>
           )}
         </div>
 
-        <div className="space-y-3">
-          {tasks.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>No tasks yet. Add one to get started!</p>
-            </div>
-          ) : (
-            tasks.map((task) => (
-              <div
-                key={task.id}
-                className="flex items-center justify-between p-4 bg-card rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 transition-all hover:shadow-md"
-              >
-                <div className="flex items-center gap-3 flex-1">
-                  <button
-                    className={`flex-shrink-0 h-6 w-6 rounded-full border flex items-center justify-center transition-colors ${
-                      task.completed
-                        ? "bg-primary border-primary text-primary-foreground"
-                        : "border-gray-400 dark:border-gray-600"
-                    }`}
-                    onClick={() => toggleComplete(task.id)}
-                    aria-label={task.completed ? "Mark as incomplete" : "Mark as complete"}
-                  >
-                    {task.completed && <Check className="h-4 w-4" />}
-                  </button>
-
-                  {editingTaskId === task.id ? (
-                    <input
-                      type="text"
-                      className="flex-1 p-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                      value={editedTaskTitle}
-                      onChange={(e) => setEditedTaskTitle(e.target.value)}
-                      onKeyDown={(e) => e.key === "Enter" && saveEdit(task.id)}
-                      onBlur={() => saveEdit(task.id)}
-                      autoFocus
-                    />
-                  ) : (
-                    <span
-                      className={`text-base cursor-pointer flex-1 ${task.completed ? "line-through text-muted-foreground" : ""}`}
-                      onClick={() => startEditing(task)}
-                    >
-                      {task.title}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex gap-1 ml-2">
-                  <button
-                    className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-                    onClick={() => startEditing(task)}
-                    aria-label="Edit task"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button
-                    className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
-                    onClick={() => deleteTask(task.id)}
-                    aria-label="Delete task"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="flex gap-2">
+            <Badge variant="outline" className="bg-background/80 text-foreground">
+              Total: {totalTasks}
+            </Badge>
+            <Badge variant="outline" className="bg-background/80 text-primary">
+              Active: {activeTasks}
+            </Badge>
+            <Badge variant="outline" className="bg-background/80 text-muted-foreground">
+              Completed: {completedTasks}
+            </Badge>
+          </div>
+          <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+            {completionPercentage}% Complete
+          </Badge>
         </div>
+
+        <Tabs
+          defaultValue="all"
+          className="mb-6"
+          onValueChange={(value) => setActiveFilter(value as "all" | "active" | "completed")}
+        >
+          <TabsList className="grid grid-cols-3 mb-4">
+            <TabsTrigger value="all">All Tasks</TabsTrigger>
+            <TabsTrigger value="active">Active</TabsTrigger>
+            <TabsTrigger value="completed">Completed</TabsTrigger>
+          </TabsList>
+          <TabsContent value="all" className="mt-0">
+            <TaskList
+              tasks={filteredTasks}
+              editingTaskId={editingTaskId}
+              editedTaskTitle={editedTaskTitle}
+              setEditedTaskTitle={setEditedTaskTitle}
+              toggleComplete={toggleComplete}
+              startEditing={startEditing}
+              saveEdit={saveEdit}
+              deleteTask={deleteTask}
+            />
+          </TabsContent>
+          <TabsContent value="active" className="mt-0">
+            <TaskList
+              tasks={filteredTasks}
+              editingTaskId={editingTaskId}
+              editedTaskTitle={editedTaskTitle}
+              setEditedTaskTitle={setEditedTaskTitle}
+              toggleComplete={toggleComplete}
+              startEditing={startEditing}
+              saveEdit={saveEdit}
+              deleteTask={deleteTask}
+            />
+          </TabsContent>
+          <TabsContent value="completed" className="mt-0">
+            <TaskList
+              tasks={filteredTasks}
+              editingTaskId={editingTaskId}
+              editedTaskTitle={editedTaskTitle}
+              setEditedTaskTitle={setEditedTaskTitle}
+              toggleComplete={toggleComplete}
+              startEditing={startEditing}
+              saveEdit={saveEdit}
+              deleteTask={deleteTask}
+            />
+          </TabsContent>
+        </Tabs>
+      </Card>
+    </div>
+  )
+}
+
+interface TaskListProps {
+  tasks: Task[]
+  editingTaskId: number | null
+  editedTaskTitle: string
+  setEditedTaskTitle: (title: string) => void
+  toggleComplete: (id: number) => void
+  startEditing: (task: Task) => void
+  saveEdit: (id: number) => void
+  deleteTask: (id: number) => void
+}
+
+function TaskList({
+  tasks,
+  editingTaskId,
+  editedTaskTitle,
+  setEditedTaskTitle,
+  toggleComplete,
+  startEditing,
+  saveEdit,
+  deleteTask,
+}: TaskListProps) {
+  if (tasks.length === 0) {
+    return (
+      <div className="text-center py-12 text-muted-foreground bg-muted/30 rounded-lg border border-border/50">
+        <p>No tasks found. Add one to get started!</p>
       </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar">
+      {tasks.map((task) => (
+        <div
+          key={task.id}
+          className={`flex items-center justify-between p-4 rounded-lg transition-all hover:shadow-md ${
+            task.completed
+              ? "bg-muted/30 border border-border/30"
+              : "bg-card border border-border/50 hover:border-primary/30 hover:shadow-primary/5"
+          }`}
+        >
+          <div className="flex items-center gap-3 flex-1">
+            <button
+              className={`flex-shrink-0 h-6 w-6 rounded-full border flex items-center justify-center transition-colors ${
+                task.completed
+                  ? "bg-primary border-primary text-primary-foreground"
+                  : "border-muted-foreground hover:border-primary"
+              }`}
+              onClick={() => toggleComplete(task.id)}
+              aria-label={task.completed ? "Mark as incomplete" : "Mark as complete"}
+            >
+              {task.completed && <Check className="h-4 w-4" />}
+            </button>
+
+            {editingTaskId === task.id ? (
+              <Input
+                type="text"
+                className="flex-1 p-2 border border-primary/30 rounded-lg bg-background text-foreground focus-visible:ring-primary"
+                value={editedTaskTitle}
+                onChange={(e) => setEditedTaskTitle(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && saveEdit(task.id)}
+                onBlur={() => saveEdit(task.id)}
+                autoFocus
+              />
+            ) : (
+              <span
+                className={`text-base cursor-pointer flex-1 ${task.completed ? "line-through text-muted-foreground" : ""}`}
+                onClick={() => startEditing(task)}
+              >
+                {task.title}
+              </span>
+            )}
+          </div>
+
+          <div className="flex gap-1 ml-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              onClick={() => startEditing(task)}
+              aria-label="Edit task"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              onClick={() => deleteTask(task.id)}
+              aria-label="Delete task"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
